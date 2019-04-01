@@ -4,44 +4,67 @@ import gzip
 import csv
 from dateutil.parser import parse
 import pandas as pd
+import re
 
 strZipFile = '/Users/wangmengying/Downloads/bgl2.gz'
-strDstFile = 'bgl2.csv'
+strDstFile = 'bgl2.dat'
 
-
-def gzfile2csv(inputfile,outputfile):
-    file = gzip.GzipFile(inputfile,"r")
-    with open(outputfile,"w") as outfile:
-        writer = csv.writer(outfile)
-        writer.writerow(["date","time","contents"])
-        levels = []
-        i = 0
+def gzfile2txt(inputfile):
+    file = gzip.GzipFile(inputfile,'r')
+    with open('bgl2.csv','w') as csvfile:
+        writer = csv.writer(csvfile)
+        writer.writerow(['time','log'])
         for line in file:
-            # if i == 0:
-            #     time0 = line.split(" ")[4]
-            #     time0 = time0.replace(".",":")
-            #     time0 = " ".join(time0.split(":")[:-1])
-            #     print (time0)
-            #     a = parse(time0)
-            date = line.split(" ")[2]
-            date = date.replace(".","-")
-            time1 = line.split(" ")[4]
-            time1 = time1.replace(".",":")
-            # time = (parse(time1) - a).total_seconds()
-            level = line.split(" ")[8]
-            if level not in levels:
-                levels.append(level)
-            content = line.split(" ")[7:]
-            content = " ".join(content)
-            writer.writerow([time1,content])
-            i += 1
+            print(line)
+            line = line.strip()
+            line = str(line)
+            date = line.split(" ")[4]
+            time = " ".join(date.split(".")[:2])
+            time = time.replace(".", ":")
+            log = " ".join(line.split(" ")[7:])
+            log = re.sub('[0-9’!"#$%&\'()*+,-./:;<=>?@，。?★、…【】《》？“”‘’！[\\]^_`{|}~\s]+', " ", log)
+            writer.writerow([time, log])
 
-def gzfile2pandas(inputfile,outputfile):
-    file = gzip.GzipFile(inputfile, "r")
-    data = pd.read_table(file,header=None,index_col=0)
-    data.head(10)
+#quchong
+def filter1(inputfile):
+    df = pd.read_csv(inputfile, header=0, sep=',')
+    datalist = df.drop_duplicates()
+    datalist.to_csv('bgl.csv', sep='\t', header=True, index=False)
 
-gzfile2pandas(strZipFile,strDstFile)
+def anamolyfile(inputfile):
+    file = open(inputfile, 'r')
+    i = 0
+    label = "normal"
+    with open('file.csv', 'w') as f1:#, open('errorfile.dat','w') as f2:
+        for line in file:
+            if i == 0:
+                i += 1
+                continue
+            line = line.replace("\n","\t")
+            # mins = line.split(' ')[1]
+            # mins = mins.split('\t')[0]
+            # log = line.split('\t',1)[1]
+            # # line_seen.append(log)
+            if ("WARNING" or "ERROR" or "FAILURE") in line.split():
+                label = "ananomly"
+                f1.write(line + label + "\n")
+            elif "FATAL" in line.split():
+                label = "error"
+                f1.write(line + label + "\n")
+            else:
+                f1.write(line + label + "\n")
+            # if ("WARNING" or "ERROR" or "FAILURE" )in line.split():
+            #     f2.write(line)
+
+# gzfile2txt(strZipFile)
+# filter1('bgl2.csv')
+anamolyfile('bgl.csv')
+
+
+
+
+
+
 
 
 
